@@ -1,0 +1,9 @@
+#game {
+    display: block;
+    margin: 1cm auto;
+    border: 1px solid black;
+}
+
+#img {
+    display: none;
+}
