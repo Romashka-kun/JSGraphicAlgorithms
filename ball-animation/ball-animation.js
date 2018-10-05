@@ -16,7 +16,7 @@ function init() {
     const RADIUS = 25;
     var last_redraw_time = get_time();
 
-    const SPEED_x = 50;
+    const SPEED = 100;
 
     // r = ...;
 
@@ -65,8 +65,8 @@ function init() {
             if (balloons[i].x + RADIUS >= XCORNER + WIDTH || balloons[i].x - RADIUS <= XCORNER)
                 balloons[i].dx = -balloons[i].dx;
 
-            balloons[i].x += balloons[i].dx * elapsed_time_sec * SPEED_x;
-            balloons[i].y += balloons[i].dy * elapsed_time_sec * SPEED_x;
+            balloons[i].x += balloons[i].dx * elapsed_time_sec * SPEED;
+            balloons[i].y += balloons[i].dy * elapsed_time_sec * SPEED;
         }
 
 
