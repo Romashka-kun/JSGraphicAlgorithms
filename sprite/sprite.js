@@ -67,17 +67,18 @@ function init() {
     */
     // var img = new Image();
     // img.src = "https://st2.depositphotos.com/2001755/5408/i/450/depositphotos_54081723-stock-photo-beautiful-nature-landscape.jpg";
-    var img1 = document.getElementById("img1");
-    var img2 = document.getElementById("img2");
+    var img_rotation = document.getElementById("img1");
+    var img_explosion = document.getElementById("img2");
 
     var x = 25;
     var y = 50;
     var dx = 1;
     var dy = 1;
-    var animation_frame = 0;
+    // var balls[i].srcX = 0;
     var frames = 10;
+    var explosion_frame = 14;
 
-    const FPS = 15;
+    const FPS = 10;
     const WIDTH = 480;
     const HEIGHT = 320;
     const XCORNER = 80;
@@ -86,10 +87,10 @@ function init() {
     const animation_start_time = get_time();
     var last_redraw_time = get_time();
 
-    var balls = [{x: 150, y: 150, dx: 1, dy: 1, srcY: 0, findex: 0, step: 50},
-                    {x: 420, y: 340, dx: -1, dy: 0.3, srcY: 50, findex: 0, step: 50},
-                    {x: 250, y: 250, dx: -0.1, dy: -1.1, srcY: 100, findex: 0, step: 50},
-                    {x: 300, y: 250, dx: -0.8, dy: 0.3, srcY: 150, findex: 0, step: 50}];
+    var balls = [{img: img_rotation, x: 150, y: 150, dx: 1, dy: 1, srcX: 0, srcY: 0, step: 50}, //step - frame-size
+                    {img: img_rotation, x: 420, y: 340, dx: -1, dy: 0.3, srcX: 0, srcY: 50, step: 50},
+                    {img: img_rotation, x: 250, y: 250, dx: -0.1, dy: -0.9, srcX: 0, srcY: 100, step: 50},
+                    {img: img_rotation, x: 300, y: 250, dx: -0.8, dy: 0.3, srcX: 0, srcY: 150, step: 50}];
 
     function isIntersect(mPoint, ball) {
         return Math.sqrt((mPoint.x - ball.x - 25) ** 2 + (mPoint.y - ball.y - 25) ** 2) < 25;
@@ -103,12 +104,14 @@ function init() {
 
         for (var i = 0; i < balls.length; i++)
             if (isIntersect(mouseClick, balls[i])) {
-                balls.splice(i, 1);
+                balls[i].img = img_explosion;
+                balls[i].step = 128;
+                balls[i].animation_start = get_time();
                 return;
             }
 
-        balls.push({x: mouseClick.x, y: mouseClick.y, dx: Math.random() * 2 - 1, dy: Math.random() * 2 - 1,
-                    srcY: Math.floor(Math.random() * 4) * 50, findex: 0, step: 50});
+        balls.push({img: img_rotation, x: mouseClick.x, y: mouseClick.y, dx: Math.random() * 2 - 1, dy: Math.random() * 2 - 1,
+                    srcX: 0, srcY: Math.floor(Math.random() * 4) * 50, findex: 0, step: 50});
     });
 
     requestAnimationFrame(animation_step);
@@ -117,25 +120,47 @@ function init() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.strokeStyle = "black";
         ctx.strokeRect(XCORNER, YCORNER, WIDTH, HEIGHT);
-        for (var i = 0; i < balls.length; i++)
-            ctx.drawImage(img1, animation_frame, balls[i].srcY, 50, 50,
-                balls[i].x, balls[i].y, 50, 50);
+        for (var i = 0; i < balls.length; i++) {
+            if (balls[i].img === img_rotation)
+                var draw_size = balls[i].step;
+            else
+                draw_size = balls[i].step / 2;
+            // balls[i].animation_start = get_time();
+
+            ctx.drawImage(
+                balls[i].img,
+                balls[i].srcX, balls[i].srcY, balls[i].step, balls[i].step,
+                balls[i].x, balls[i].y, draw_size, draw_size
+            );
+        }
     }
 
     function update_animation_parameters(elapsed_time, current_time) {
-        var frame_index = Math.floor(((current_time - animation_start_time) * FPS) % frames);
         for (var i = 0; i < balls.length; i++) {
-            balls[i].findex = frame_index;
-            animation_frame = balls[i].findex * balls[i].step;
-            if (balls[i].y + 50 >= YCORNER + HEIGHT || balls[i].y <= YCORNER)
-                balls[i].dy = -balls[i].dy;
+            if (balls[i].img === img_rotation) {
+                var findex = Math.floor(((current_time - animation_start_time) * FPS)) % frames;
+                balls[i].srcX = findex * balls[i].step;
 
-            if (balls[i].x + 50 >= XCORNER + WIDTH || balls[i].x <= XCORNER)
-                balls[i].dx = -balls[i].dx;
+                if (balls[i].y + 50 >= YCORNER + HEIGHT || balls[i].y <= YCORNER)
+                    balls[i].dy = -balls[i].dy;
 
-            balls[i].x += balls[i].dx;
-            balls[i].y += balls[i].dy;
+                if (balls[i].x + 50 >= XCORNER + WIDTH || balls[i].x <= XCORNER)
+                    balls[i].dx = -balls[i].dx;
 
+                balls[i].x += balls[i].dx;
+                balls[i].y += balls[i].dy;
+            } else {
+                findex = Math.floor(((current_time - balls[i].animation_start) * FPS));
+                if (findex >= explosion_frame) {
+                    balls.splice(i, 1);
+                    continue;
+                }
+
+                var fline = Math.floor(findex / 4);
+                var fcol = findex % 4;
+                balls[i].srcX = fcol * balls[i].step;
+                balls[i].srcY = fline * balls[i].step;
+            }
         }
     }
 
@@ -145,6 +170,9 @@ function init() {
         var current_time = get_time();
         var elapsed_time = current_time - last_redraw_time;
         last_redraw_time = current_time;
+
+        if (elapsed_time > 1)
+            elapsed_time = 0;
 
         update_animation_parameters(elapsed_time, current_time);
         draw();
