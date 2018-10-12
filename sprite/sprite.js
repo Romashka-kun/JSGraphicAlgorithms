@@ -67,15 +67,16 @@ function init() {
     */
     // var img = new Image();
     // img.src = "https://st2.depositphotos.com/2001755/5408/i/450/depositphotos_54081723-stock-photo-beautiful-nature-landscape.jpg";
-    var img = document.getElementById("img");
+    var img1 = document.getElementById("img1");
+    var img2 = document.getElementById("img2");
 
     var x = 25;
     var y = 50;
     var dx = 1;
     var dy = 1;
+    var animation_frame = 0;
     var fps = 15;
     var frames = 10;
-    var current_frame = 0;
 
     const WIDTH = 480;
     const HEIGHT = 320;
@@ -86,28 +87,29 @@ function init() {
     const animation_start_time = get_time() / 1000;
     var last_redraw_time = animation_start_time;
 
-    var balls = [{x: 150, y: 150, dx: 1, dy: 1, anim_frame_x: 0, anim_frame_y: 0, totalFrames: 9, fCount: 0, step: 50},
-                    {x: 420, y: 340, dx: -1, dy: 0.3, anim_frame_x: 0, anim_frame_y: 50, totalFrames: 9, fCount: 0, step: 50},
-                    {x: 250, y: 250, dx: -0.1, dy: -1.1, anim_frame_x: 0, anim_frame_y: 100, totalFrames: 9, fCount: 0, step: 50},
-                    {x: 300, y: 250, dx: -0.8, dy: 0.3, anim_frame_x: 0, anim_frame_y: 150, totalFrames: 9, fCount: 0, step: 50}];
+    var balls = [{x: 150, y: 150, dx: 1, dy: 1, srcY: 0, fCount: 0, step: 50},
+                    {x: 420, y: 340, dx: -1, dy: 0.3, srcY: 50, fCount: 0, step: 50},
+                    {x: 250, y: 250, dx: -0.1, dy: -1.1, srcY: 100, fCount: 0, step: 50},
+                    {x: 300, y: 250, dx: -0.8, dy: 0.3, srcY: 150, fCount: 0, step: 50}];
 
     function isIntersect(mPoint, ball) {
         return Math.sqrt((mPoint.x - ball.x - 25) ** 2 + (mPoint.y - ball.y - 25) ** 2) < 25;
     }
 
     canvas.addEventListener('click', (e) => {
-        var rect = canvas.getBoundingClientRect();
         const mouseClick = {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
+            x: e.offsetX,
+            y: e.offsetY
         };
-        for (var i = 0; i < balls.length; i++) {
-            if (isIntersect(mouseClick, balls[i]))
+
+        for (var i = 0; i < balls.length; i++)
+            if (isIntersect(mouseClick, balls[i])) {
                 balls.splice(i, 1);
-            // else
-            //     balls.push({x: mouseClick.x, y: mouseClick.y, dx: Math.random(), dy: Math.random(),
-            //         anim_frame_x: 0, anim_frame_y: 50, totalFrames: 9, fCount: 0});
-        }
+                return;
+            }
+
+        balls.push({x: mouseClick.x, y: mouseClick.y, dx: Math.random() * 2 - 1, dy: Math.random() * 2 - 1,
+                    srcY: Math.floor(Math.random() * 4) * 50, fCount: 0, step: 50});
     });
 
     requestAnimationFrame(animation_step);
@@ -117,7 +119,7 @@ function init() {
         ctx.strokeStyle = "black";
         ctx.strokeRect(XCORNER, YCORNER, WIDTH, HEIGHT);
         for (var i = 0; i < balls.length; i++)
-            ctx.drawImage(img, balls[i].anim_frame_x, balls[i].anim_frame_y, 50, 50,
+            ctx.drawImage(img1, animation_frame, balls[i].srcY, 50, 50,
                 balls[i].x, balls[i].y, 50, 50);
     }
 
@@ -125,7 +127,7 @@ function init() {
         var frame_index = Math.floor(((current_time - animation_start_time) * fps) % frames);
         for (var i = 0; i < balls.length; i++) {
             balls[i].fCount = frame_index;
-            balls[i].anim_frame_x = balls[i].fCount * balls[i].step;
+            animation_frame = balls[i].fCount * balls[i].step;
             if (balls[i].y + 50 >= YCORNER + HEIGHT || balls[i].y <= YCORNER)
                 balls[i].dy = -balls[i].dy;
 
