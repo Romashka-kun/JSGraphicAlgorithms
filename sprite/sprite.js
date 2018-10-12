@@ -75,22 +75,21 @@ function init() {
     var dx = 1;
     var dy = 1;
     var animation_frame = 0;
-    var fps = 15;
     var frames = 10;
 
+    const FPS = 15;
     const WIDTH = 480;
     const HEIGHT = 320;
     const XCORNER = 80;
     const YCORNER = 80;
-    const SPEED = 100;
 
-    const animation_start_time = get_time() / 1000;
-    var last_redraw_time = animation_start_time;
+    const animation_start_time = get_time();
+    var last_redraw_time = get_time();
 
-    var balls = [{x: 150, y: 150, dx: 1, dy: 1, srcY: 0, fCount: 0, step: 50},
-                    {x: 420, y: 340, dx: -1, dy: 0.3, srcY: 50, fCount: 0, step: 50},
-                    {x: 250, y: 250, dx: -0.1, dy: -1.1, srcY: 100, fCount: 0, step: 50},
-                    {x: 300, y: 250, dx: -0.8, dy: 0.3, srcY: 150, fCount: 0, step: 50}];
+    var balls = [{x: 150, y: 150, dx: 1, dy: 1, srcY: 0, findex: 0, step: 50},
+                    {x: 420, y: 340, dx: -1, dy: 0.3, srcY: 50, findex: 0, step: 50},
+                    {x: 250, y: 250, dx: -0.1, dy: -1.1, srcY: 100, findex: 0, step: 50},
+                    {x: 300, y: 250, dx: -0.8, dy: 0.3, srcY: 150, findex: 0, step: 50}];
 
     function isIntersect(mPoint, ball) {
         return Math.sqrt((mPoint.x - ball.x - 25) ** 2 + (mPoint.y - ball.y - 25) ** 2) < 25;
@@ -109,7 +108,7 @@ function init() {
             }
 
         balls.push({x: mouseClick.x, y: mouseClick.y, dx: Math.random() * 2 - 1, dy: Math.random() * 2 - 1,
-                    srcY: Math.floor(Math.random() * 4) * 50, fCount: 0, step: 50});
+                    srcY: Math.floor(Math.random() * 4) * 50, findex: 0, step: 50});
     });
 
     requestAnimationFrame(animation_step);
@@ -124,10 +123,10 @@ function init() {
     }
 
     function update_animation_parameters(elapsed_time, current_time) {
-        var frame_index = Math.floor(((current_time - animation_start_time) * fps) % frames);
+        var frame_index = Math.floor(((current_time - animation_start_time) * FPS) % frames);
         for (var i = 0; i < balls.length; i++) {
-            balls[i].fCount = frame_index;
-            animation_frame = balls[i].fCount * balls[i].step;
+            balls[i].findex = frame_index;
+            animation_frame = balls[i].findex * balls[i].step;
             if (balls[i].y + 50 >= YCORNER + HEIGHT || balls[i].y <= YCORNER)
                 balls[i].dy = -balls[i].dy;
 
@@ -147,11 +146,11 @@ function init() {
         var elapsed_time = current_time - last_redraw_time;
         last_redraw_time = current_time;
 
-        update_animation_parameters(elapsed_time / 1000, current_time / 1000);
+        update_animation_parameters(elapsed_time, current_time);
         draw();
     }
 
     function get_time() {
-        return new Date().getTime();
+        return new Date().getTime() / 1000;
     }
 }
