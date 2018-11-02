@@ -66,7 +66,7 @@ function init() {
             ctx.rotate(-(alpha + i * 2 * Math.PI / 12));
             drawRope();
             ctx.translate(0, ROPE_LENGTH);
-            ctx.rotate(alpha);
+            ctx.rotate(alpha * 4);
             drawPropeller();
             ctx.restore();
         }
