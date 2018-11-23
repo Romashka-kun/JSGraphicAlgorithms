@@ -1,6 +1,7 @@
 function init() {
 
     var stage = new createjs.Stage("game");
+    var canvas = document.getElementById('game');
 
     const ARENA_H = 48;
     const ARENA_W = 64;
@@ -21,7 +22,7 @@ function init() {
 
     const wallThickness = 10;
 
-    var level = new Array(58);
+    var levelGrid = new Array(58);
 
     function buildAWall(i, j) {
         var wallCell = new createjs.Shape();
@@ -36,13 +37,15 @@ function init() {
     }
 
     for (let i = 0; i < ARENA_W; i++) {
-        level[i] = new Array(ARENA_H);
+        levelGrid[i] = new Array(ARENA_H);
         for (let j = 0; j < ARENA_H; j++) {
             if (i === 0 || i === ARENA_W - 1 || j === 0 || j === ARENA_H - 1
-                || (i === ARENA_W / 4 || i === 3 * ARENA_W / 4) && j > ARENA_H / 4 && j < 3 * ARENA_H / 4)
-                level[i][j] = buildAWall(i, j);
+                || (i === ARENA_W / 4 || i === 3 * ARENA_W / 4) && j > ARENA_H / 4 && j < 3 * ARENA_H / 4) {
+                arena.addChild(buildAWall(i, j));
+                levelGrid[i][j] = 1;
 
-            arena.addChild(level[i][j]);
+            } else
+                levelGrid[i][j] = 0;
         }
     }
 
@@ -61,6 +64,7 @@ function init() {
     var mainChar = new createjs.Container();
     mainChar.addChild(charGun, charBody);
     mainChar.setTransform(ARENA_W * 5, ARENA_H * 5, 1, 1, 0, 0, 0, 10, 10);
+    const mainCharIntersectParam = 10;
 
     stage.addChild(floor, arena, mainChar);
 
@@ -88,7 +92,7 @@ function init() {
 
     createjs.Ticker.addEventListener("tick", function() {
 
-        if (isIntersect(mainChar)) {
+        if (isIntersect(mainChar, mainCharIntersectParam)) {
             mainChar.x = prevPosition[0];
             mainChar.y = prevPosition[1];
             return;
@@ -130,11 +134,11 @@ function init() {
 
     //**************************Пересечение стен**********************************
 
-    function isIntersect(shape) {
+    function isIntersect(shape, param) {
         for (let i = 0; i < arena.numChildren; i++) {
             let wall = arena.getChildAt(i);
-            if (Math.max(shape.x - 10, wall.x) < Math.min(shape.x + 10, wall.x + 10) &&
-                Math.max(shape.y - 10, wall.y) < Math.min(shape.y + 10, wall.y + 10))
+            if (Math.max(shape.x - param, wall.x) < Math.min(shape.x + param, wall.x + wallThickness) &&
+                Math.max(shape.y - param, wall.y) < Math.min(shape.y + param, wall.y + wallThickness))
                 return true;
         }
         return false;
@@ -144,12 +148,16 @@ function init() {
 
     const bulletSpeed = 5;
     const bulletRadius = 2;
+    const bulletIntersectParam = 0.1;
 
     function fireBullet(dx, dy) {
         let bullet = new createjs.Shape();
         bullet.graphics
             .beginFill('red')
-            .drawCircle(mainChar.x, mainChar.y, bulletRadius);
+            .drawCircle(0, 0, bulletRadius);
+        bullet.x = mainChar.x;
+        bullet.y = mainChar.y;
+
         stage.addChild(bullet);
         bullet.addEventListener('tick', function () {
             bulletTick(bullet, dx, dy);
@@ -160,11 +168,20 @@ function init() {
         let distance = Math.sqrt(dx * dx + dy * dy);
         bullet.x += dx / distance * bulletSpeed;
         bullet.y += dy / distance * bulletSpeed;
+        if (isIntersect(bullet, bulletIntersectParam))
+            stage.removeChild(bullet);
+        if (outsideOfCanvas(bullet))
+            stage.removeChild(bullet);
     }
 
     stage.addEventListener('click', function (e) {
         fireBullet(e.localX - mainChar.x, e.localY - mainChar.y);
     });
+
+    function outsideOfCanvas(shape) {
+        if (shape.x > canvas.width || shape.x < 0 || shape.y > canvas.height || shape.y < 0)
+            stage.removeChild(shape);
+    }
 
 
     createjs.Ticker.addEventListener("tick", stage);
