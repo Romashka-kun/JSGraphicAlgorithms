@@ -1,15 +1,15 @@
 function init() {
 
-    var stage = new createjs.Stage("game");
+    var stage = new createjs.Stage('game');
     var canvas = document.getElementById('game');
 
     const ARENA_H = 48;
     const ARENA_W = 64;
 
-    const MOVE_LEFT = "KeyA";
-    const MOVE_RIGHT = "KeyD";
-    const MOVE_UP = "KeyW";
-    const MOVE_DOWN = "KeyS";
+    const MOVE_LEFT = 'KeyA';
+    const MOVE_RIGHT = 'KeyD';
+    const MOVE_UP = 'KeyW';
+    const MOVE_DOWN = 'KeyS';
 
     //****************************Создание уровня************************************
 
@@ -17,18 +17,27 @@ function init() {
 
     var floor = new createjs.Shape();
     floor.graphics
-        .beginFill("beige")
+        .beginFill('beige')
         .drawRect(0, 0, ARENA_W * 10, ARENA_H * 10);
 
     const wallThickness = 10;
 
-    var levelGrid = new Array(58);
+    var levelGrid = twoDimArray(ARENA_W, ARENA_H);
+
+    function twoDimArray(rows, cols, value) {
+        let array = new Array(rows);
+        for (let i = 0; i < rows; i++) {
+            array[i] = new Array(cols);
+            for (let j = 0; j < cols; j++)
+                array[i][j] = value;
+        }
+        return array;
+    }
 
     function buildAWall(i, j) {
         var wallCell = new createjs.Shape();
         wallCell.graphics
-            .beginFill("grey")
-            // .drawRect(i * wallThickness, j * wallThickness, wallThickness, wallThickness);
+            .beginFill('grey')
             .drawRect(0, 0, wallThickness, wallThickness);
         wallCell.x = i * wallThickness;
         wallCell.y = j * wallThickness;
@@ -37,13 +46,11 @@ function init() {
     }
 
     for (let i = 0; i < ARENA_W; i++) {
-        levelGrid[i] = new Array(ARENA_H);
         for (let j = 0; j < ARENA_H; j++) {
             if (i === 0 || i === ARENA_W - 1 || j === 0 || j === ARENA_H - 1
                 || (i === ARENA_W / 4 || i === 3 * ARENA_W / 4) && j > ARENA_H / 4 && j < 3 * ARENA_H / 4) {
                 arena.addChild(buildAWall(i, j));
                 levelGrid[i][j] = 1;
-
             } else
                 levelGrid[i][j] = 0;
         }
@@ -90,7 +97,7 @@ function init() {
 
     var prevPosition = [0, 0];
 
-    createjs.Ticker.addEventListener("tick", function() {
+    createjs.Ticker.addEventListener('tick', function () {
 
         if (isIntersect(mainChar, mainCharIntersectParam)) {
             mainChar.x = prevPosition[0];
@@ -183,8 +190,60 @@ function init() {
             stage.removeChild(shape);
     }
 
+    //*********************************Поиск кратчайшего пути***************************************
+    console.log(pathFinding(10, 15, Math.round(mainChar.x / 10), Math.round(mainChar.y / 10)));
 
-    createjs.Ticker.addEventListener("tick", stage);
+    function pathFinding(enemyX, enemyY, heroX, heroY) {
+        let shPath = twoDimArray(ARENA_W, ARENA_H, -1);
+        shPath[enemyX][enemyY] = 0;
+
+        let value = 0;
+        let cells_with_value = [[enemyX, enemyY]];
+
+        while (shPath[heroX][heroY] === -1) {
+            let cells_with_next_value = [];
+
+            for (let i = 0; i < cells_with_value.length; i++) {
+                let currentElX = cells_with_value[i][0];
+                let currentElY = cells_with_value[i][1];
+
+                //[[-1, 0], [1, 0], [0, -1], [0, 1]]
+
+                if (levelGrid[currentElX + 1][currentElY] === 0 &&
+                    shPath[currentElX + 1][currentElY] === -1) { //[  [  [2, 3], [3, 4]  ], []  ]
+
+                    shPath[currentElX + 1][currentElY] = value + 1;
+                    cells_with_next_value.push([currentElX + 1, currentElY]);
+                }
+                if (levelGrid[currentElX - 1][currentElY] === 0 &&
+                    shPath[currentElX - 1][currentElY] === -1) {
+
+                    shPath[currentElX - 1][currentElY] = value + 1;
+                    cells_with_next_value.push([currentElX - 1, currentElY]);
+                }
+                if (levelGrid[currentElX][currentElY + 1] === 0 &&
+                    shPath[currentElX][currentElY + 1] === -1) {
+
+                    shPath[currentElX][currentElY + 1] = value + 1;
+                    cells_with_next_value.push([currentElX, currentElY + 1]);
+                }
+                if (levelGrid[currentElX][currentElY - 1] === 0 &&
+                    shPath[currentElX][currentElY - 1] === -1) {
+
+                    shPath[currentElX][currentElY - 1] = value + 1;
+                    cells_with_next_value.push([currentElX, currentElY - 1]);
+                }
+            }
+
+            value++;
+            cells_with_value = cells_with_next_value;
+        }
+        console.log(shPath);
+        return shPath[mainChar.x / 10][mainChar.y / 10];
+    }
+
+
+    createjs.Ticker.addEventListener('tick', stage);
     createjs.Ticker.framerate = 60;
     createjs.Ticker.timerMode = createjs.Ticker.RAF_SYNCHED;
 }
