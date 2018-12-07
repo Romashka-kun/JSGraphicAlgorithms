@@ -1,7 +1,7 @@
 function init() {
 
-    var stage = new createjs.Stage('game');
-    var canvas = document.getElementById('game');
+    let stage = new createjs.Stage('game');
+    let canvas = document.getElementById('game');
 
     const ARENA_H = 48;
     const ARENA_W = 64;
@@ -13,16 +13,16 @@ function init() {
 
     //****************************Создание уровня************************************
 
-    var arena = new createjs.Container();
+    let arena = new createjs.Container();
 
-    var floor = new createjs.Shape();
+    let floor = new createjs.Shape();
     floor.graphics
         .beginFill('beige')
         .drawRect(0, 0, ARENA_W * 10, ARENA_H * 10);
 
     const wallThickness = 10;
 
-    var levelGrid = twoDimArray(ARENA_W, ARENA_H);
+    let levelGrid = twoDimArray(ARENA_W, ARENA_H);
 
     function twoDimArray(rows, cols, value) {
         let array = new Array(rows);
@@ -35,7 +35,7 @@ function init() {
     }
 
     function buildAWall(i, j) {
-        var wallCell = new createjs.Shape();
+        let wallCell = new createjs.Shape();
         wallCell.graphics
             .beginFill('grey')
             .drawRect(0, 0, wallThickness, wallThickness);
@@ -58,17 +58,17 @@ function init() {
 
     //******************Создание персонажа***************************************************************
 
-    var charBody = new createjs.Shape();
+    let charBody = new createjs.Shape();
     charBody.graphics
         .beginFill('green')
         .drawRect(0, 0, 20, 20);
 
-    var charGun = new createjs.Shape();
+    let charGun = new createjs.Shape();
     charGun.graphics
         .beginFill('black')
         .drawRect(13, 2, 7, -15);
 
-    var mainChar = new createjs.Container();
+    let mainChar = new createjs.Container();
     mainChar.addChild(charGun, charBody);
     mainChar.setTransform(ARENA_W * 5, ARENA_H * 5, 1, 1, 0, 0, 0, 10, 10);
     const mainCharIntersectParam = 10;
@@ -77,7 +77,7 @@ function init() {
 
     //******************Управление персонажем**********************************************************
 
-    var map = {};
+    let map = {};
     map[MOVE_LEFT] = false;
     map[MOVE_RIGHT] = false;
     map[MOVE_DOWN] = false;
@@ -95,7 +95,7 @@ function init() {
         // e.preventDefault();
     }
 
-    var prevPosition = [0, 0];
+    let prevPosition = [0, 0];
 
     createjs.Ticker.addEventListener('tick', function () {
 
@@ -139,7 +139,7 @@ function init() {
         mainChar.rotation = Math.atan2(e.localX - mainChar.x, -(e.localY - mainChar.y)) * (180 / Math.PI);
     });
 
-    //**************************Пересечение стен**********************************
+    //**************************Пересечение объектов**********************************
 
     function isIntersect(shape, param) {
         for (let i = 0; i < arena.numChildren; i++) {
@@ -191,7 +191,7 @@ function init() {
     }
 
     //*********************************Поиск кратчайшего пути***************************************
-    console.log(pathFinding(10, 15, Math.round(mainChar.x / 10), Math.round(mainChar.y / 10)));
+    // console.log(pathFinding(10, 15, Math.round(mainChar.x / 10), Math.round(mainChar.y / 10)));
 
     function pathFinding(enemyX, enemyY, heroX, heroY) {
         let shPath = twoDimArray(ARENA_W, ARENA_H, -1);
@@ -210,7 +210,7 @@ function init() {
                 //[[-1, 0], [1, 0], [0, -1], [0, 1]]
 
                 if (levelGrid[currentElX + 1][currentElY] === 0 &&
-                    shPath[currentElX + 1][currentElY] === -1) { //[  [  [2, 3], [3, 4]  ], []  ]
+                    shPath[currentElX + 1][currentElY] === -1) {
 
                     shPath[currentElX + 1][currentElY] = value + 1;
                     cells_with_next_value.push([currentElX + 1, currentElY]);
@@ -238,9 +238,118 @@ function init() {
             value++;
             cells_with_value = cells_with_next_value;
         }
-        console.log(shPath);
-        return shPath[mainChar.x / 10][mainChar.y / 10];
+        return createRoute(shPath, heroX, heroY);
     }
+
+    function createRoute(shPath, heroX, heroY) {
+        let routeLength = shPath[heroX][heroY];
+        let currentElX = heroX;
+        let currentElY = heroY;
+        let route = [[heroX, heroY]];
+        for (let i = 0; i < routeLength - 1; i++) {
+
+            if (shPath[currentElX + 1][currentElY] === routeLength - 1 - i) {
+                route.push([currentElX + 1, currentElY]);
+                currentElX++;
+            } else if (shPath[currentElX - 1][currentElY] === routeLength - 1 - i) {
+                route.push([currentElX - 1, currentElY]);
+                currentElX--;
+            } else if (shPath[currentElX][currentElY + 1] === routeLength - 1 - i) {
+                route.push([currentElX, currentElY + 1]);
+                currentElY++;
+            } else if (shPath[currentElX][currentElY - 1] === routeLength - 1 - i) {
+                route.push([currentElX, currentElY - 1]);
+                currentElY--;
+            }
+
+        }
+
+        // return route[routeLength - 1];
+        return pathSmoothing(shPath, route);
+    }
+
+    function pathSmoothing(shPath, route) {
+        let routeLength = route.length - 1;
+        let smoothRoute = [];
+        let checkPoint = route[routeLength];
+        let currentPoint = route[routeLength - 1];
+
+        for (let i = 0; i < routeLength; i++) {
+            // debugger;
+            if (walkable(checkPoint, route[routeLength - 1 - i], shPath)) {
+                currentPoint = route[routeLength - 1 - i];
+            } else {
+                smoothRoute.push(currentPoint);
+                checkPoint = currentPoint;
+                currentPoint = route[routeLength - 1 - i];
+            }
+        }
+        smoothRoute.push(route[0]);
+        console.log(smoothRoute);
+        return smoothRoute[0];
+    }
+
+    function walkable(a, b, shPath) {
+        let x1 = a[0]/* * 10*/;
+        let y1 = a[1]/* * 10*/;
+        let x2 = b[0]/* * 10*/;
+        let y2 = b[1]/* * 10*/;
+
+        let dx = x2 - x1;
+        let dy = y2 - y1;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+
+        for (let i = 0; i < distance * 2; i++) {
+
+            let t = 0.5 / distance * i;
+            let x = Math.round((x1 + t * (x2 - x1)));
+            let y = Math.round((y1 + t * (y2 - y1)));
+            // console.log(x + " " + y);
+            if (shPath[x][y] === -1)
+                return false;
+
+        }
+        return true;
+    }
+
+
+    //*******************************ВРАги**************************************************
+
+    let enemyList = new createjs.Container();
+    stage.addChild(enemyList);
+
+    let enemy = new createjs.Shape();
+    enemy.graphics
+        .beginFill('blue')
+        .drawRect(0, 0, 10, 10);
+    enemy.regX = 5;
+    enemy.regY = 5;
+    enemy.x = 100;
+    enemy.y = 150;
+    // enemy.setTransform(100, 150, 1, 1, 0, 0, 0, 5, 5);
+
+    stage.addChild(enemy);
+
+    enemy.addEventListener('tick', function () {
+
+        let enemyX = Math.round(enemy.x / 10);
+        let enemyY = Math.round(enemy.y / 10);
+
+        let route = pathFinding(enemyX, enemyY, Math.round(mainChar.x / 10), Math.round(mainChar.y / 10));
+        let dx = route[0] - enemyX;
+        let dy = route[1] - enemyY;
+        let distance = Math.sqrt(dx * dx + dy * dy);
+        if (distance === 0)
+            distance = 1;
+
+        // console.log(enemy.x + " " + enemy.y);
+        console.log(enemyX + " " + enemyY + " " + distance);
+        enemy.x += dx / distance;
+        enemy.y += dy / distance;
+
+
+    });
+
 
 
     createjs.Ticker.addEventListener('tick', stage);
