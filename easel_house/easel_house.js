@@ -56,14 +56,19 @@ function init() {
     var house3 = container.clone(true);
 
     // container.setTransform(30, 70, 0.5, 0.5, 0, 0, 0);
-    container.regX = 140;
-    container.regY = 50;
+    container.regX += 140;
+    container.regY += 50;
     house1.setTransform(320, 120, 0.8, 0.8);
     house2.setTransform(480, 20, 0.2, 0.2);
     house3.setTransform(70, 220, 0.6, 0.6);
-    console.log(container.regX, container.regY);
-
     stage.addChild(container, house1, house2, house3);
 
-    stage.update();
+
+    house1.addEventListener('tick', function () {
+        house1.rotation += 1;
+    });
+
+    createjs.Ticker.addEventListener("tick", stage);
+    createjs.Ticker.framerate = 60;
+    createjs.Ticker.timerMode = createjs.Ticker.RAF_SYNCHED;
 }
