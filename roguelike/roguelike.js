@@ -20,7 +20,7 @@ function init() {
         .beginFill('beige')
         .drawRect(0, 0, ARENA_W * 10, ARENA_H * 10);
 
-    const wallThickness = 10;
+    const wallHitBox = 10;
 
     let levelGrid = twoDimArray(ARENA_W, ARENA_H);
 
@@ -38,9 +38,11 @@ function init() {
         let wallCell = new createjs.Shape();
         wallCell.graphics
             .beginFill('grey')
-            .drawRect(0, 0, wallThickness, wallThickness);
-        wallCell.x = i * wallThickness;
-        wallCell.y = j * wallThickness;
+            .drawRect(0, 0, wallHitBox, wallHitBox);
+        wallCell.regX = wallHitBox / 2;
+        wallCell.regY = wallHitBox / 2;
+        wallCell.x = i * wallHitBox + 5;
+        wallCell.y = j * wallHitBox + 5;
 
         return wallCell;
     }
@@ -58,22 +60,23 @@ function init() {
 
     //******************Создание персонажа***************************************************************
 
-    let charBody = new createjs.Shape();
-    charBody.graphics
+
+    let heroBody = new createjs.Shape();
+    heroBody.graphics
         .beginFill('green')
         .drawRect(0, 0, 20, 20);
 
-    let charGun = new createjs.Shape();
-    charGun.graphics
+    let heroGun = new createjs.Shape();
+    heroGun.graphics
         .beginFill('black')
         .drawRect(13, 2, 7, -15);
 
-    let mainChar = new createjs.Container();
-    mainChar.addChild(charGun, charBody);
-    mainChar.setTransform(ARENA_W * 5, ARENA_H * 5, 1, 1, 0, 0, 0, 10, 10);
-    const mainCharIntersectParam = 10;
+    let hero = new createjs.Container();
+    hero.addChild(heroGun, heroBody);
+    hero.setTransform(ARENA_W * 5, ARENA_H * 5, 1, 1, 0, 0, 0, 10, 10);
+    const heroHitBox = 10;
 
-    stage.addChild(floor, arena, mainChar);
+    stage.addChild(floor, arena, hero);
 
     //******************Управление персонажем**********************************************************
 
@@ -99,53 +102,54 @@ function init() {
 
     createjs.Ticker.addEventListener('tick', function () {
 
-        if (isIntersect(mainChar, mainCharIntersectParam)) {
-            mainChar.x = prevPosition[0];
-            mainChar.y = prevPosition[1];
+        if (isIntersect(hero, heroHitBox, arena, wallHitBox)) {
+            hero.x = prevPosition[0];
+            hero.y = prevPosition[1];
             return;
         }
 
-        prevPosition[0] = mainChar.x;
-        prevPosition[1] = mainChar.y;
+        prevPosition[0] = hero.x;
+        prevPosition[1] = hero.y;
 
         if (map[MOVE_UP] && map[MOVE_LEFT]) {
-            mainChar.x -= 5;
-            mainChar.y -= 5;
+            hero.x -= 5;
+            hero.y -= 5;
         } else if (map[MOVE_UP] && map[MOVE_RIGHT]) {
-            mainChar.x += 5;
-            mainChar.y -= 5;
+            hero.x += 5;
+            hero.y -= 5;
         } else if (map[MOVE_DOWN] && map[MOVE_LEFT]) {
-            mainChar.x -= 5;
-            mainChar.y += 5;
+            hero.x -= 5;
+            hero.y += 5;
         } else if (map[MOVE_DOWN] && map[MOVE_RIGHT]) {
-            mainChar.x += 5;
-            mainChar.y += 5;
+            hero.x += 5;
+            hero.y += 5;
         } else if (map[MOVE_DOWN])
-            mainChar.y += 5;
+            hero.y += 5;
         else if (map[MOVE_UP])
-            mainChar.y -= 5;
+            hero.y -= 5;
         else if (map[MOVE_LEFT])
-            mainChar.x -= 5;
+            hero.x -= 5;
         else if (map[MOVE_RIGHT])
-            mainChar.x += 5;
+            hero.x += 5;
     });
 
 
     stage.addEventListener('stagemousemove', function (e) {
-        mainChar.rotation = Math.atan2(e.localX - mainChar.x, -(e.localY - mainChar.y)) * (180 / Math.PI);
+        hero.rotation = Math.atan2(e.localX - hero.x, -(e.localY - hero.y)) * (180 / Math.PI);
     });
 
     stage.addEventListener('click', function (e) {
-        mainChar.rotation = Math.atan2(e.localX - mainChar.x, -(e.localY - mainChar.y)) * (180 / Math.PI);
+        hero.rotation = Math.atan2(e.localX - hero.x, -(e.localY - hero.y)) * (180 / Math.PI);
     });
 
     //**************************Пересечение объектов**********************************
 
-    function isIntersect(shape, param) {
-        for (let i = 0; i < arena.numChildren; i++) {
-            let wall = arena.getChildAt(i);
-            if (Math.max(shape.x - param, wall.x) < Math.min(shape.x + param, wall.x + wallThickness) &&
-                Math.max(shape.y - param, wall.y) < Math.min(shape.y + param, wall.y + wallThickness))
+    function isIntersect(shape, hitBox, container, obstacleHitBox) {
+        for (let i = 0; i < container.numChildren; i++) {
+            let obstacle = container.getChildAt(i);
+            let thick = obstacleHitBox / 2;
+            if (Math.max(shape.x - hitBox, obstacle.x - thick) < Math.min(shape.x + hitBox, obstacle.x + thick) &&
+                Math.max(shape.y - hitBox, obstacle.y) - thick < Math.min(shape.y + hitBox, obstacle.y + thick))
                 return true;
         }
         return false;
@@ -155,15 +159,15 @@ function init() {
 
     const bulletSpeed = 5;
     const bulletRadius = 2;
-    const bulletIntersectParam = 0.1;
+    const bulletHitBox = 0.1;
 
     function fireBullet(dx, dy) {
         let bullet = new createjs.Shape();
         bullet.graphics
             .beginFill('red')
             .drawCircle(0, 0, bulletRadius);
-        bullet.x = mainChar.x;
-        bullet.y = mainChar.y;
+        bullet.x = hero.x;
+        bullet.y = hero.y;
 
         stage.addChild(bullet);
         bullet.addEventListener('tick', function () {
@@ -175,14 +179,18 @@ function init() {
         let distance = Math.sqrt(dx * dx + dy * dy);
         bullet.x += dx / distance * bulletSpeed;
         bullet.y += dy / distance * bulletSpeed;
-        if (isIntersect(bullet, bulletIntersectParam))
+        if (isIntersect(bullet, bulletHitBox, enemyList, enemyHitBox)) {
+            enemyList.removeChild(enemy);
+            stage.removeChild(bullet);
+        }
+        if (isIntersect(bullet, bulletHitBox, arena, wallHitBox))
             stage.removeChild(bullet);
         if (outsideOfCanvas(bullet))
             stage.removeChild(bullet);
     }
 
     stage.addEventListener('click', function (e) {
-        fireBullet(e.localX - mainChar.x, e.localY - mainChar.y);
+        fireBullet(e.localX - hero.x, e.localY - hero.y);
     });
 
     function outsideOfCanvas(shape) {
@@ -191,7 +199,6 @@ function init() {
     }
 
     //*********************************Поиск кратчайшего пути***************************************
-    // console.log(pathFinding(10, 15, Math.round(mainChar.x / 10), Math.round(mainChar.y / 10)));
 
     function pathFinding(enemyX, enemyY, heroX, heroY) {
         let shPath = twoDimArray(ARENA_W, ARENA_H, -1);
@@ -319,23 +326,24 @@ function init() {
     stage.addChild(enemyList);
 
     let enemy = new createjs.Shape();
+    let enemyHitBox = 10;
     enemy.graphics
         .beginFill('blue')
-        .drawRect(0, 0, 10, 10);
-    enemy.regX = 5;
-    enemy.regY = 5;
+        .drawRect(0, 0, enemyHitBox, enemyHitBox);
+    enemy.regX = enemyHitBox / 2;
+    enemy.regY = enemyHitBox / 2;
     enemy.x = 100;
     enemy.y = 150;
     // enemy.setTransform(100, 150, 1, 1, 0, 0, 0, 5, 5);
 
-    stage.addChild(enemy);
+    enemyList.addChild(enemy);
 
     enemy.addEventListener('tick', function () {
 
         let enemyX = Math.round(enemy.x / 10);
         let enemyY = Math.round(enemy.y / 10);
 
-        let route = pathFinding(enemyX, enemyY, Math.round(mainChar.x / 10), Math.round(mainChar.y / 10));
+        let route = pathFinding(enemyX, enemyY, Math.round(hero.x / 10), Math.round(hero.y / 10));
         let dx = route[0] - enemyX;
         let dy = route[1] - enemyY;
         let distance = Math.sqrt(dx * dx + dy * dy);
