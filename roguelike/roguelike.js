@@ -494,6 +494,7 @@ function init() {
 
         function returnToMenu() {
             stage.removeChild(game);
+            game = new createjs.Container();
             stage.addChild(mainMenu);
         }
     }
