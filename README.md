@@ -1,2 +1,1 @@
-#Алгоритмы компьютерной графики
- [ROGUE LIKE GAME](roguelike/roguelike.html)
+[ROGUE LIKE GAME](roguelike/roguelike.html)
