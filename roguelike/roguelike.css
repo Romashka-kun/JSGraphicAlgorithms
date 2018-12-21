@@ -3,3 +3,7 @@
     margin: 1cm auto;
     border: 1px solid black;
 }
+
+canvas {
+    cursor: url("gun-pointer.png") 12 12, auto;
+}
